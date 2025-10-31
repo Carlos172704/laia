@@ -1,16 +1,14 @@
 services:
   mlflow:
-    build:
-      context: .
-      dockerfile: Dockerfile.mlflow
-    container_name: mlflow
+    image: ghcr.io/mlflow/mlflow:latest
+    command: >
+      mlflow server
+      --host 0.0.0.0
+      --port 5050
+      --backend-store-uri sqlite:///mlflow/mlflow.db
+      --artifacts-destination /mlflow/mlruns
+      --serve-artifacts
     ports:
       - "5050:5050"
     volumes:
-      - ./mlflow:/mlflow             
-    networks:
-      - mlops-net
-
-networks:
-  mlops-net:
-    driver: bridge
+      - ./mlflow:/mlflow
