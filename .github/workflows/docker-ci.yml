@@ -1,0 +1,23 @@
+name: Build and test Docker setup
+
+on:
+  push:
+    branches: [ main, rui ]
+  pull_request:
+    branches: [ main, rui ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image for MLflow
+        run: docker build -t mlflow-test -f Dockerfile.mlflow .
+
+      - name: Validate docker-compose.yml
+        run: docker compose config
