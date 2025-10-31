@@ -24,8 +24,8 @@ def build_pipeline():
     return Pipeline([("pre", pre), ("model", model)])
 
 def main():
-    mlflow.set_tracking_uri("mlruns")  # local store
-    mlflow.set_experiment(EXPT_NAME)
+    mlflow.set_tracking_uri("http://localhost:5050")
+    mlflow.set_experiment("baseline_trip_duration")
     with mlflow.start_run():
         df = load_data()
         X = df.drop(columns=["duration_min"])
