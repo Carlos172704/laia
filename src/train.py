@@ -17,8 +17,40 @@ RAW_PATH = "data/training_data/training/yellow_tripdata_2013-01.parquet"
 EXPT_NAME = "baseline_trip_duration"
 
 
+import os
+import pandas as pd
+from src.features import prepare_dataframe   # garante que tens este import no topo
+
+RAW_PATH = "data/training_data/training/yellow_tripdata_2013-01.parquet"
+
+
 def load_data():
-    df = pd.read_parquet(RAW_PATH)
+    """
+    Carrega os dados reais se o ficheiro existir.
+    Se não existir (ex.: GitHub Actions), usa um dataset sintético pequenino
+    só para o CI conseguir treinar um modelo.
+    """
+    if os.path.exists(RAW_PATH):
+        df = pd.read_parquet(RAW_PATH)
+        return prepare_dataframe(df)
+
+    # Fallback para CI / ambiente sem dados reais
+    print(f"[WARN] RAW_PATH '{RAW_PATH}' não encontrado — a usar dados sintéticos para treino CI.")
+
+    base_pickup = pd.to_datetime("2013-01-01 08:00:00")
+    n = 100
+
+    df = pd.DataFrame({
+        "pickup_datetime": base_pickup + pd.to_timedelta(range(n), unit="min"),
+        "dropoff_datetime": base_pickup + pd.to_timedelta([i + 10 for i in range(n)], unit="min"),
+        "pickup_longitude": [-73.95] * n,
+        "pickup_latitude": [40.75] * n,
+        "dropoff_longitude": [-73.99] * n,
+        "dropoff_latitude": [40.76] * n,
+        "trip_distance": [1.0 + 0.05 * i for i in range(n)],
+        "passenger_count": [1] * n,
+    })
+
     return prepare_dataframe(df)
 
 
