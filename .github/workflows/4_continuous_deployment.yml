@@ -1,0 +1,40 @@
+name: 4 - Continuous Deployment
+run-name: "${{ github.workflow }}"
+
+on:
+  workflow_run:
+    workflows: ["3 - Continuous Staging"]
+    types: [completed]
+  workflow_dispatch:
+
+jobs:
+  deploy-production:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download production image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: serving-image-production
+          path: .
+
+      - name: Load Docker image
+        run: docker load -i taxi-serving-staging.tar
+
+      - name: Tag image as production
+        run: docker tag taxi-serving:staging taxi-serving:production
+
+      - name: Run container em 'produção' (simulada) e testar
+        run: |
+          docker run -d --name taxi-serving-production -p 9000:8080 taxi-serving:production
+          sleep 10
+          curl -f http://localhost:9000/health
+        shell: bash
+
+      - name: Stop container
+        if: always()
+        run: docker stop taxi-serving-production || true
