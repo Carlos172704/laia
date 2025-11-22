@@ -16,13 +16,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Docker (no extra config needed)
-        run: docker version
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Generate model artifacts for production
+        run: python -m src.train
 
       - name: Build image for production
         run: docker build -t taxi-serving:production .
 
-      - name: Run container in production (simulado) e testar
+      - name: Run container in production and smoke test
         run: |
           docker run -d --name taxi-serving-production -p 9000:8080 taxi-serving:production
           sleep 10
