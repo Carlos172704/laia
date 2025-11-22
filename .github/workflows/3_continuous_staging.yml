@@ -16,14 +16,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Download staging image artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: serving-image-staging
-          path: .
+      - name: Setup Docker (no extra config needed)
+        run: docker version
 
-      - name: Load Docker image
-        run: docker load -i taxi-serving-staging.tar
+      - name: Build image for staging
+        run: docker build -t taxi-serving:staging .
 
       - name: Run container in staging and smoke test
         run: |
@@ -35,9 +32,3 @@ jobs:
       - name: Stop container
         if: always()
         run: docker stop taxi-serving-staging || true
-
-      - name: Promote image artifact to production
-        uses: actions/upload-artifact@v4
-        with:
-          name: serving-image-production
-          path: taxi-serving-staging.tar
