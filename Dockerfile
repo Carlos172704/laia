@@ -5,11 +5,11 @@ WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir -r requirements.txt
+COPY pyproject.toml uv.lock ./
 
-# Copiar código e modelo
+RUN pip install uv
+RUN uv sync
+
 COPY src ./src
 COPY artifacts ./artifacts
 
@@ -17,4 +17,4 @@ EXPOSE 8080
 
 ENV MODEL_PATH=/app/artifacts/model.pkl
 
-CMD ["uvicorn", "src.api:app", "--host", "0.0.0.0", "--port", "8080"]
+CMD ["uv", "run", "uvicorn", "src.api:app", "--host", "0.0.0.0", "--port", "8080"]
