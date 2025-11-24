@@ -1,18 +1,20 @@
 name: 1 - Continuous Integration
 run-name: "${{ github.workflow }}"
 
-permissions: write-all
+permissions:
+  contents: read
+  packages: write
 
 on:
   push:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-    
+
   workflow_dispatch:
 
 env:
-  REGISTRY: ${{ vars.REGISTRY }}
+  REGISTRY: ghcr.io
   MLFLOW_TRACKING_URI: ${{ vars.MLFLOW_TRACKING_URI }}
   MLFLOW_EXPERIMENT_NAME: ${{ vars.MLFLOW_EXPERIMENT_NAME }}
   MLFLOW_MODEL_NAME: ${{ vars.MLFLOW_MODEL_NAME }}
