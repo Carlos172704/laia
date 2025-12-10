@@ -5,11 +5,11 @@ import joblib
 import pandas as pd
 from fastapi import FastAPI
 from pydantic import BaseModel
+from typing import List
 
-from src.features import haversine
+# from src.features import haversine  # not needed for leaderboard input right now
 
-
-app = FastAPI(title="NYC Taxi Trip Duration API")
+app = FastAPI(title="NYC Taxi Trip Duration API (Leaderboard-Compatible)")
 
 _MODEL = None
 
@@ -23,47 +23,86 @@ def get_model():
     return _MODEL
 
 
-class TripInput(BaseModel):
-    pickup_datetime: datetime
-    pickup_longitude: float
-    pickup_latitude: float
-    dropoff_longitude: float
-    dropoff_latitude: float
+# === SCHEMAS THAT MATCH THE LEADERBOARD EXAMPLE ENDPOINT ===
+# Example expected input (from example_endpoint.py):
+# {
+#   "data": [
+#     {
+#       "VendorID": 2,
+#       "tpep_pickup_datetime": "2011-01-01 00:10:00",
+#       "passenger_count": 4,
+#       "trip_distance": 1,
+#       "PULocationID": 145,
+#       "DOLocationID": 145
+#     },
+#     ...
+#   ]
+# }
+
+class LeaderboardRecord(BaseModel):
+    VendorID: int
+    tpep_pickup_datetime: datetime
     passenger_count: int
     trip_distance: float
+    PULocationID: int
+    DOLocationID: int
+
+
+class LeaderboardRequest(BaseModel):
+    data: List[LeaderboardRecord]
 
 
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    # Match the example endpoint's response as closely as possible
+    return {"status": "healthy"}
 
 
 @app.post("/predict")
-def predict(trip: TripInput):
-    dt = trip.pickup_datetime
+def predict(payload: LeaderboardRequest):
+    """
+    Leaderboard-compatible prediction endpoint.
 
-    hav_km = haversine(
-        trip.pickup_longitude,
-        trip.pickup_latitude,
-        trip.dropoff_longitude,
-        trip.dropoff_latitude,
-    )
+    Input:  { "data": [ { VendorID, tpep_pickup_datetime, passenger_count,
+                          trip_distance, PULocationID, DOLocationID }, ... ] }
+    Output: { "predictions": [ ... ] }
+    """
 
-    features = pd.DataFrame(
-        {
-            "trip_distance": [trip.trip_distance],
-            "hav_km": [hav_km],
-            "passenger_count": [trip.passenger_count],
-            "pickup_hour": [dt.hour],
-            "pickup_dow": [dt.weekday()],
-            "pickup_mon": [dt.month],
-        }
-    )
+    records = []
+    for rec in payload.data:
+        dt = rec.tpep_pickup_datetime
+
+        # Your model was trained on:
+        #   trip_distance, hav_km, passenger_count, pickup_hour, pickup_dow, pickup_mon
+        # (see prepare_dataframe in features.py) :contentReference[oaicite:3]{index=3}
+        #
+        # We don't have lat/long here, only distance and location IDs.
+        # A simple, consistent proxy is to approximate hav_km from trip_distance.
+        # (trip_distance is usually in miles, so 1 mile ≈ 1.60934 km).
+        hav_km_approx = rec.trip_distance * 1.60934
+
+        records.append(
+            {
+                "trip_distance": rec.trip_distance,
+                "hav_km": hav_km_approx,
+                "passenger_count": rec.passenger_count,
+                "pickup_hour": dt.hour,
+                "pickup_dow": dt.weekday(),  # same convention as pandas .dt.dayofweek
+                "pickup_mon": dt.month,
+            }
+        )
+
+    features = pd.DataFrame.from_records(records)
 
     model = get_model()
-    pred = float(model.predict(features)[0])
+    preds = model.predict(features)
 
-    return {
-        "predicted_duration_min": pred,
-        "model_version": os.getenv("MODEL_VERSION", "local"),
-    }
+    # Leaderboard expects {"predictions": [ ... ]}
+    return {"predictions": [float(p) for p in preds]}
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    port = int(os.getenv("PORT", 9001))
+    uvicorn.run(app, host="0.0.0.0", port=port)
