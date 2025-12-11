@@ -1,6 +1,4 @@
-data/testing_data/testing
-data/training_data/training
-venv/
+data/testing_data/
+data/training_data/
 .venv/
-ENV/
-env/
+mlruns/
