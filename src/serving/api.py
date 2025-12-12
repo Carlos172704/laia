@@ -13,7 +13,6 @@ app = FastAPI(title="NYC Taxi Trip Duration API (Leaderboard-Compatible)")
 
 _MODEL = None
 
-
 def get_model():
     """Lazy load do modelo."""
     global _MODEL

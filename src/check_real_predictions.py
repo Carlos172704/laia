@@ -1,6 +1,6 @@
 import joblib
 import pandas as pd
-from src.features import prepare_dataframe
+from training.utils import prepare_dataframe
 
 MODEL_PATH = "artifacts/model.pkl"
 TEST_FILE = "data/testing_data/yellow_tripdata_2013-01.parquet"

@@ -1,150 +1,34 @@
 import os
 from math import sqrt
-import glob
 
 import mlflow
 import mlflow.sklearn
-import pandas as pd
-from sklearn.compose import ColumnTransformer
-from sklearn.linear_model import Ridge
+
 from sklearn.metrics import mean_absolute_error, mean_squared_error
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import StandardScaler
-
-from src.features import prepare_dataframe
-
-# === CONFIG ===
-# Pattern for training parquet files (2011–2012)
-TRAIN_GLOB = os.getenv(
-    "TRAIN_GLOB",
-    "data/training_data/yellow_tripdata_201[1-2]-*.parquet",
-)
-
-FALLBACK_TRAIN_GLOB = os.getenv(
-    "FALLBACK_TRAIN_GLOB",
-    "data/training_data/yellow_tripdata_2011-*.parquet",
-)
-
-# Pattern for explicit test parquet files (2013)
-TEST_GLOB = os.getenv(
-    "TEST_GLOB",
-    "data/testing_data/yellow_tripdata_2013-*.parquet",
-)
-
-# Max rows to load for training / testing (to avoid killing the VM)
-MAX_TRAIN_ROWS = int(os.getenv("MAX_TRAIN_ROWS", "20000000")) #acresecentar 0 para aumentar treino
-MAX_TEST_ROWS = int(os.getenv("MAX_TEST_ROWS", "10000000")) #acresecentar 0 para aumentar teste
-
-EXPERIMENT_NAME = os.getenv("EXPERIMENT_NAME", "baseline_trip_duration")
-MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", "file:mlruns")
-
-
-def load_raw_data(path_pattern: str, max_rows: int | None = None) -> pd.DataFrame:
-    """
-    Load one or more parquet files matching `path_pattern`, optionally
-    sampling a maximum total number of rows.
-    This avoids reading the full dataset into memory on a small VM.
-    """
-    files = sorted(glob.glob(path_pattern))
-    if not files:
-        raise FileNotFoundError(f"No parquet files match pattern: {path_pattern}")
-
-    dfs = []
-    total = 0
-
-    for fp in files:
-        df = pd.read_parquet(fp)
-
-        if max_rows is not None:
-            remaining = max_rows - total
-            if remaining <= 0:
-                break
-
-            if len(df) > remaining:
-                # Random sample for this chunk
-                df = df.sample(n=remaining, random_state=42)
-
-        dfs.append(df)
-        total += len(df)
-
-        if max_rows is not None and total >= max_rows:
-            break
-
-    return pd.concat(dfs, ignore_index=True)
-
-
-def load_data() -> pd.DataFrame:
-    """
-    Fallback para CI / ambientes sem dados reais:
-    cria um dataset sintético pequenino só para conseguir treinar.
-    """
-    print("[WARN] A usar dados sintéticos para treino CI (sem parquet reais).")
-
-    base_pickup = pd.to_datetime("2013-01-01 08:00:00")
-    n = 100
-
-    df = pd.DataFrame(
-        {
-            "pickup_datetime": base_pickup + pd.to_timedelta(range(n), unit="min"),
-            "dropoff_datetime": base_pickup
-            + pd.to_timedelta([i + 10 for i in range(n)], unit="min"),
-            "pickup_longitude": [-73.95] * n,
-            "pickup_latitude": [40.75] * n,
-            "dropoff_longitude": [-73.99] * n,
-            "dropoff_latitude": [40.76] * n,
-            "trip_distance": [1.0 + 0.05 * i for i in range(n)],
-            "passenger_count": [1] * n,
-        }
-    )
-
-    return prepare_dataframe(df)
-
-
-def build_pipeline() -> Pipeline:
-    num_features = [
-        "trip_distance",
-        "hav_km",
-        "passenger_count",
-        "pickup_hour",
-        "pickup_dow",
-        "pickup_mon",
-    ]
-
-    pre = ColumnTransformer(
-        [("num", StandardScaler(), num_features)],
-        remainder="drop",
-    )
-
-    model = Ridge(alpha=1.0)
-
-    pipe = Pipeline(
-        steps=[
-            ("preprocess", pre),
-            ("model", model),
-        ]
-    )
-    return pipe
+from sklearn.model_selection import train_test_split
+from utils import *
+from config import configs
 
 
 def main():
     # 1) MLflow config
-    mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
-    mlflow.set_experiment(EXPERIMENT_NAME)
+    mlflow.set_tracking_uri(configs.MLFLOW_TRACKING_URI) # Local server setup
+    mlflow.set_experiment(configs.EXPERIMENT_NAME) # Experiment setup
 
     # ===== TRAIN DATA (2011–2012, with fallback) =====
     try:
-        print(f"Loading training data from: {TRAIN_GLOB}")
-        print(f"MAX_TRAIN_ROWS = {MAX_TRAIN_ROWS}")
-        df_raw = load_raw_data(TRAIN_GLOB, max_rows=MAX_TRAIN_ROWS)
+        print(f"Loading training data from: {configs.TRAIN_GLOB}")
+        print(f"MAX_TRAIN_ROWS = {configs.MAX_TRAIN_ROWS}")
+        df_raw = load_raw_data(configs.TRAIN_GLOB, max_rows=configs.MAX_TRAIN_ROWS)
         df = prepare_dataframe(df_raw)
         print(f"After prepare_dataframe (2011–2012): n_rows = {len(df)}")
         if df.empty:
             raise ValueError("Preprocessed training data from 2011–2012 is empty.")
     except (FileNotFoundError, ValueError) as e:
         # Fallback: try 2013 training data (same schema as you used before)
-        print(f"[WARN] {e} — falling back to training data from: {FALLBACK_TRAIN_GLOB}")
+        print(f"[WARN] {e} — falling back to training data from: {configs.FALLBACK_TRAIN_GLOB}")
         try:
-            df_raw = load_raw_data(FALLBACK_TRAIN_GLOB, max_rows=MAX_TRAIN_ROWS)
+            df_raw = load_raw_data(configs.FALLBACK_TRAIN_GLOB, max_rows=configs.MAX_TRAIN_ROWS)
             df = prepare_dataframe(df_raw)
             print(f"After prepare_dataframe (fallback 2013): n_rows = {len(df)}")
             if df.empty:
@@ -159,10 +43,8 @@ def main():
     X = df.drop(columns=["duration_min"])
     y = df["duration_min"]
 
-    from sklearn.model_selection import train_test_split
-
     X_train, X_val, y_train, y_val = train_test_split(
-        X, y, test_size=0.2, random_state=42
+        X, y, test_size=0.2, random_state=configs.SEED
     )
 
     with mlflow.start_run():
@@ -183,9 +65,9 @@ def main():
 
         # ===== EXPLICIT TEST ON 2013 (TEST_GLOB) =====
         try:
-            print(f"Loading test data from: {TEST_GLOB}")
-            print(f"MAX_TEST_ROWS = {MAX_TEST_ROWS}")
-            df_test_raw = load_raw_data(TEST_GLOB, max_rows=MAX_TEST_ROWS)
+            print(f"Loading test data from: {configs.TEST_GLOB}")
+            print(f"MAX_TEST_ROWS = {configs.MAX_TEST_ROWS}")
+            df_test_raw = load_raw_data(configs.TEST_GLOB, max_rows=configs.MAX_TEST_ROWS)
             df_test = prepare_dataframe(df_test_raw)
             print(f"After prepare_dataframe (test 2013): n_rows = {len(df_test)}")
 
