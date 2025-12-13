@@ -11,4 +11,4 @@ COPY src/training ./src/training
 RUN pip install uv
 RUN uv sync --frozen
 
-CMD ["uv", "run", "python", "train.py"]
+CMD ["uv", "run", "python", "src/training/train.py"]

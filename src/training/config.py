@@ -7,7 +7,7 @@ load_dotenv(override=False)
 @dataclass
 class Configs:
     """
-    Class for environment configuration for training.
+    Datalass for configuration.
     """
     # Runtime configs
     COMMIT_SHA: str
@@ -16,8 +16,9 @@ class Configs:
     MLFLOW_TRACKING_URI: str
 
     # Data
-    TRAIN_PATH: str
-    TEST_PATH: str
+    BASE_URL: str
+    TRAIN_DATA: list
+    VALIDATION_DATA: list
 
     # Training configs
     MAX_TRAIN_ROWS: int
@@ -31,33 +32,51 @@ def load_configs() -> Configs:
 
     :return: Configs class
     """
+
+    # Runtime
     commit_sha = os.getenv("COMMIT_SHA")
     if not commit_sha:
         raise EnvironmentError("Missing required env var: COMMIT_SHA")
-    
     model_name = os.getenv("MLFLOW_MODEL_NAME")
     if not model_name:
         raise EnvironmentError("Missing required env var: MLFLOW_MODEL_NAME")
-    
     experiment_name = os.getenv("MLFLOW_EXPERIMENT_NAME")
     if not experiment_name:
         raise EnvironmentError("Missing required env var: MLFLOW_EXPERIMENT_NAME")
-    
     tracking_uri = os.getenv("MLFLOW_TRACKING_URI", 
                              "http://localhost:5050"
                              )
 
-    data_path = os.getenv("TAXI_DATA_PATH")
-    if not data_path:
-        raise EnvironmentError(
-            "Missing required env var: TAXI_DATA_PATH (path to the CSV file)"
-        )
+    # Data
+    base_url = os.getenv("BASE_URL")
+    if not base_url:
+        raise EnvironmentError("Missing required env var: BASE_URL")
+    train_data = os.getenv("TRAIN_DATA").split(",")
+    if not train_data:
+        raise EnvironmentError("Missing required env var: TRAIN_DATA")
+    validation_data = os.getenv("VALIDATION_DATA").split(",")
+    if not validation_data:
+        raise EnvironmentError("Missing required env var: VALIDATION_DATA")
+    
+    # Training
+    max_train_rows=int(os.getenv("MAX_TRAIN_ROWS", 20000000))
+    max_test_rows=int(os.getenv("MAX_TEST_ROWS", 10000000))
+    seed=int(os.getenv("SEED", 42))
+    test_size=float(os.getenv("TEST_SIZE", 0.2))
+    
     return Configs(
         COMMIT_SHA=commit_sha,
         MODEL_NAME=model_name,
         EXPERIMENT_NAME=experiment_name,
         MLFLOW_TRACKING_URI=tracking_uri,
-        data_path=data_path,
+        BASE_URL=base_url,
+        TRAIN_DATA=train_data,
+        VALIDATION_DATA=validation_data,
+        MAX_TRAIN_ROWS=max_train_rows,
+        MAX_TEST_ROWS=max_test_rows,
+        SEED=seed,
+        TEST_SIZE=test_size,
     )
 
-configs = load_configs()
+if __name__ == "__main__":
+    configs = load_configs()

@@ -43,6 +43,14 @@ jobs:
           MLFLOW_EXPERIMENT_NAME: ${{ env.MLFLOW_EXPERIMENT_NAME }}
           MLFLOW_MODEL_NAME: ${{ env.MLFLOW_MODEL_NAME }}
           COMMIT_SHA: ${{ github.sha }}
+          
+          TRAIN_PATH: data/training_data/yellow_tripdata_201[1-2]-*.parquet
+          TEST_PATH: data/testing_data/yellow_tripdata_2013-*.parquet
+          SEED: 42
+          TEST_SIZE: 0.2
+          MAX_TRAIN_ROWS: 20000000
+          MAX_TEST_ROWS: 10000000
+
         run: |
           docker run --rm \
             -e MLFLOW_TRACKING_URI \
