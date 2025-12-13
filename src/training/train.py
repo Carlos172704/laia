@@ -34,7 +34,7 @@ def train_model():
     with mlflow.start_run() as run:
         print_and_log("Training started", "info")
         pipe = build_pipeline()
-        print("ola1")
+
         cv = KFold(n_splits=5, shuffle=True, random_state=configs.SEED)
         cv_results = cross_validate(pipe, X, y, cv=cv, 
                                     scoring={
@@ -46,7 +46,6 @@ def train_model():
         cv_mae = -cv_results["test_mae"]
         cv_rmse = -cv_results["test_rmse"]
 
-        print("ola2")
         mlflow.log_param("model", "Ridge")
         mlflow.log_metric("CV_MAE_MEAN", float(np.mean(cv_mae)))
         mlflow.log_metric("CV_MAE_STD", float(np.std(cv_mae)))
@@ -64,7 +63,7 @@ def train_model():
 
         mlflow.log_param("alpha", pipe.named_steps["model"].alpha)
         mlflow.sklearn.log_model(pipe, "model")
-        print("ola3")
+
         os.makedirs("artifacts", exist_ok=True)
         joblib.dump(pipe, configs.MODEL_PATH)
         print_and_log(f"Model saved on {configs.MODEL_PATH}.", "info")
