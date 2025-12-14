@@ -26,12 +26,10 @@ env:
   MODEL_PATH: artifacts/model.pkl
 
 jobs:
-  deploy:
-    runs-on: [self-hosted, linux, x64, deploy]
 
   train-model:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, deploy]
 
     steps:
       - uses: actions/checkout@v4

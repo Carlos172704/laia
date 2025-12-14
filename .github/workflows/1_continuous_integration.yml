@@ -28,11 +28,9 @@ env:
   MODEL_PATH: artifacts/model.pkl
 
 jobs:
-  deploy:
-    runs-on: [self-hosted, linux, x64, deploy]
 
   test-unit:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, deploy]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -43,7 +41,7 @@ jobs:
       - run: uv run pytest tests/test_train.py -v
   
   build-images:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, deploy]
     needs: test-unit
     steps:
       - uses: actions/checkout@v4
