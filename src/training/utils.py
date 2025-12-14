@@ -1,6 +1,7 @@
 import pandas as pd
 import logging
-
+import glob
+import os
 from typing import Tuple
 
 from sklearn.compose import ColumnTransformer
@@ -16,7 +17,7 @@ logging.basicConfig(filename="logs.log",
                     )
 logger = logging.getLogger(__name__)
 
-def load_data() -> Tuple[pd.DataFrame, pd.DataFrame]:
+"""def load_data() -> Tuple[pd.DataFrame, pd.DataFrame]:
     df_train_list = []
     df_validation_list = []
 
@@ -41,7 +42,62 @@ def load_data() -> Tuple[pd.DataFrame, pd.DataFrame]:
             except Exception as e:
                 print_and_log(f"Could not load {url}: {e}", "error")
     
-    return pd.concat(df_train_list, ignore_index=True), pd.concat(df_validation_list, ignore_index=True)
+    return pd.concat(df_train_list, ignore_index=True), pd.concat(df_validation_list, ignore_index=True)"""
+    
+def load_data() -> Tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Load training and validation data from LOCAL parquet files instead of URLs.
+
+      - training/*.parquet   -> 2011–2012 data (train)
+      - testing/*.parquet    -> 2013 data (validation/test)
+
+    If you use different folder names, set them in config.py as:
+      configs.TRAIN_DIR and configs.VALIDATION_DIR
+    """
+    train_dir = getattr(configs, "TRAIN_DIR", "training")
+    val_dir = getattr(configs, "VALIDATION_DIR", "testing")
+
+    train_pattern = os.path.join(train_dir, "yellow_tripdata_*.parquet")
+    val_pattern = os.path.join(val_dir, "yellow_tripdata_*.parquet")
+
+    train_files = sorted(glob.glob(train_pattern))
+    val_files = sorted(glob.glob(val_pattern))
+
+    if not train_files:
+        raise FileNotFoundError(
+            f"No training parquet files found matching pattern: {train_pattern}"
+        )
+    if not val_files:
+        raise FileNotFoundError(
+            f"No validation parquet files found matching pattern: {val_pattern}"
+        )
+
+    df_train_list = []
+    df_val_list = []
+
+    # Load training files
+    for fp in train_files:
+        print_and_log(f"Loading local training file {fp}...", "info")
+        df = pd.read_parquet(fp)
+        df_train_list.append(df)
+
+    # Load validation files
+    for fp in val_files:
+        print_and_log(f"Loading local validation file {fp}...", "info")
+        df = pd.read_parquet(fp)
+        df_val_list.append(df)
+
+    df_train = pd.concat(df_train_list, ignore_index=True)
+    df_val = pd.concat(df_val_list, ignore_index=True)
+
+    print_and_log(
+        f"Loaded {len(df_train)} training rows from {len(train_files)} files.", "info"
+    )
+    print_and_log(
+        f"Loaded {len(df_val)} validation rows from {len(val_files)} files.", "info"
+    )
+
+    return df_train, df_val
 
 def build_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     df = df.rename(
