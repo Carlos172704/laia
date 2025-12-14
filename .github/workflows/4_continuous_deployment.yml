@@ -1,44 +1,74 @@
 name: 4 - Continuous Deployment
 run-name: "${{ github.workflow }}"
 
+permissions: write-all
+
 on:
   workflow_run:
     workflows: ["3 - Continuous Staging"]
     types: [completed]
   workflow_dispatch:
 
+env:
+  REGISTRY: ${{ vars.REGISTRY }}
+  MLFLOW_TRACKING_URI: ${{ vars.MLFLOW_TRACKING_URI }}
+  MLFLOW_EXPERIMENT_NAME: ${{ vars.MLFLOW_EXPERIMENT_NAME }}
+  MLFLOW_MODEL_NAME: ${{ vars.MLFLOW_MODEL_NAME }}
+
+  BASE_URL: https://d37ci6vzurychx.cloudfront.net/trip-data
+  TRAIN_DATA: 2011,2012
+  VALIDATION_DATA: 2013
+  SEED: 42
+  TEST_SIZE: 0.2
+
+  MODEL_PATH: artifacts/model.pkl
+
+env:
+  REGISTRY: ${{ vars.REGISTRY }}
+  MLFLOW_TRACKING_URI: ${{ vars.MLFLOW_TRACKING_URI }}
+  MLFLOW_EXPERIMENT_NAME: ${{ vars.MLFLOW_EXPERIMENT_NAME }}
+  MLFLOW_MODEL_NAME: ${{ vars.MLFLOW_MODEL_NAME }}
+
 jobs:
-  deploy-production:
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+  deploy-prod:
+    # Run only if previous stage finished successfully
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      # Here we are just loging in to GHCR and pulling the serving image with production tag and running it
+      # In a real setup the deployment can be made in several ways, depending on the automation,
+      # purpose, and infra. Some examples:
+      # - We can connect through ssh and update the env
+      # - if we have orchestrators we can send/define/update the new versions to where the system is watching
+      # - the system itself might be monitoring repos and update when the new versions are pushed
+      # Also, in real setups the infra will be decoupled from the models. Here everything moves forward together
+      # but if we only change the model it is not necessary to redeploy the infrascruture. Serving frameworks
+      # such as TF serving can manage model A/B testing, rollout, rollback, ...
+      - uses: docker/login-action@v3
         with:
-          python-version: "3.10"
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install dependencies
+      - run: docker pull ${{ env.REGISTRY }}/${{ github.repository }}/src/serving:production
+      - run: docker stop serving-app || true
+      - run: docker rm serving-app || true
+
+      - name: Run production
+        env:
+          MLFLOW_TRACKING_URI: ${{ env.MLFLOW_TRACKING_URI }}
+          MLFLOW_TRACKING_USERNAME: ${{ secrets.MLFLOW_USERNAME }}
+          MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_PASSWORD }}
+          MODEL_ALIAS: ${{ github.sha }}
+          MLFLOW_MODEL_NAME: ${{ env.MLFLOW_MODEL_NAME }}
         run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
-      - name: Generate model artifacts for production
-        run: python -m src.train
-
-      - name: Build image for production
-        run: docker build -t taxi-serving:production .
-
-      - name: Run container in production and smoke test
-        run: |
-          docker run -d --name taxi-serving-production -p 9000:8080 taxi-serving:production
-          sleep 10
-          curl -f http://localhost:9000/health
-        shell: bash
-
-      - name: Stop container
-        if: always()
-        run: docker stop taxi-serving-production || true
+          docker run -d --name serving-app -p 9001:8080 \
+            -e MLFLOW_TRACKING_URI \
+            -e MLFLOW_TRACKING_USERNAME \
+            -e MLFLOW_TRACKING_PASSWORD \
+            -e MODEL_ALIAS \
+            -e MLFLOW_MODEL_NAME \
+          ${{ env.REGISTRY }}/${{ github.repository }}/src/serving:production

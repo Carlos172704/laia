@@ -6,13 +6,13 @@ import pandas as pd
 from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import List
+import uvicorn
 
 # from src.features import haversine  # not needed for leaderboard input right now
 
 app = FastAPI(title="NYC Taxi Trip Duration API (Leaderboard-Compatible)")
 
 _MODEL = None
-
 
 def get_model():
     """Lazy load do modelo."""
@@ -55,7 +55,7 @@ class LeaderboardRequest(BaseModel):
 @app.get("/health")
 def health():
     # Match the example endpoint's response as closely as possible
-    return {"status": "healthy"}
+    return {"status": "ok"}
 
 
 @app.post("/predict")
@@ -102,7 +102,6 @@ def predict(payload: LeaderboardRequest):
 
 
 if __name__ == "__main__":
-    import uvicorn
 
     port = int(os.getenv("PORT", 9001))
     uvicorn.run(app, host="0.0.0.0", port=port)

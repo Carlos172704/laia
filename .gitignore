@@ -1,4 +1,7 @@
-data/testing_data/
-data/training_data/
+data
 .venv/
 mlruns/
+.env
+artifacts/
+*.pyc
+*.log

@@ -2,7 +2,6 @@ from datetime import datetime
 import joblib
 import pandas as pd
 
-
 def build_features_from_leaderboard_payload(payload: dict) -> pd.DataFrame:
     """
     Convert a leaderboard-style payload into the feature dataframe

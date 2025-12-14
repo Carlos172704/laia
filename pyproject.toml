@@ -1,0 +1,25 @@
+[project]
+name = "laia"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.121.3",
+    "httpx>=0.28.1",
+    "joblib>=1.5.2",
+    "mlflow>=3.6.0",
+    "numpy>=2.2.6",
+    "pandas>=2.3.3",
+    "pyarrow>=22.0.0",
+    "scikit-learn>=1.7.2",
+    "uvicorn[standard]>=0.38.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.1",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]

@@ -1,11 +1,9 @@
 fastapi
 uvicorn[standard]
 httpx
-
 numpy
 pandas
 scikit-learn
 joblib
-
 mlflow
 pyarrow

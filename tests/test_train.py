@@ -1,6 +1,6 @@
 import pandas as pd
 
-from src.train import build_pipeline
+from src.training.train import build_pipeline
 
 
 def test_build_pipeline_trains_on_dummy_data():
