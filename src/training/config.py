@@ -26,6 +26,7 @@ class Configs:
     TEST_SIZE: float
 
     MODEL_PATH: str
+    COMMIT_SHA: str
 
 def load_configs() -> Configs:
     """
@@ -42,7 +43,7 @@ def load_configs() -> Configs:
     if not experiment_name:
         raise EnvironmentError("Missing required env var: MLFLOW_EXPERIMENT_NAME")
     tracking_uri = os.getenv("MLFLOW_TRACKING_URI", 
-                             "http://localhost:5050"
+                             "http://localhost:5000"
                              )
 
     # Data
@@ -63,6 +64,7 @@ def load_configs() -> Configs:
     test_size=float(os.getenv("TEST_SIZE", 0.2))
     
     model_path = os.getenv("MODEL_PATH", "artifacts/model.pkl")
+    commit_sha = os.getenv("COMMIT_SHA", "local-dev")
     
     return Configs(
         MODEL_NAME=model_name,
@@ -75,7 +77,8 @@ def load_configs() -> Configs:
         MAX_TEST_ROWS=max_test_rows,
         SEED=seed,
         TEST_SIZE=test_size,
-        MODEL_PATH=model_path
+        MODEL_PATH=model_path,
+        COMMIT_SHA=commit_sha
     )
 
 configs = load_configs()
