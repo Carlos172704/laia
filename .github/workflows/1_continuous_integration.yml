@@ -28,6 +28,9 @@ env:
   MODEL_PATH: artifacts/model.pkl
 
 jobs:
+  deploy:
+    runs-on: [self-hosted, linux, x64, deploy]
+
   test-unit:
     runs-on: ubuntu-latest
     steps:

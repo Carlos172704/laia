@@ -72,13 +72,6 @@ def predict(payload: LeaderboardRequest):
     for rec in payload.data:
         dt = rec.tpep_pickup_datetime
 
-        # Your model was trained on:
-        #   trip_distance, hav_km, passenger_count, pickup_hour, pickup_dow, pickup_mon
-        # (see prepare_dataframe in features.py) :contentReference[oaicite:3]{index=3}
-        #
-        # We don't have lat/long here, only distance and location IDs.
-        # A simple, consistent proxy is to approximate hav_km from trip_distance.
-        # (trip_distance is usually in miles, so 1 mile ≈ 1.60934 km).
         hav_km_approx = rec.trip_distance * 1.60934
 
         records.append(
