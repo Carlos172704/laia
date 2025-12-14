@@ -23,11 +23,6 @@ env:
 
   MODEL_PATH: artifacts/model.pkl
 
-env:
-  REGISTRY: ${{ vars.REGISTRY }}
-  MLFLOW_TRACKING_URI: ${{ vars.MLFLOW_TRACKING_URI }}
-  MLFLOW_EXPERIMENT_NAME: ${{ vars.MLFLOW_EXPERIMENT_NAME }}
-  MLFLOW_MODEL_NAME: ${{ vars.MLFLOW_MODEL_NAME }}
 
 jobs:
   deploy-prod:
