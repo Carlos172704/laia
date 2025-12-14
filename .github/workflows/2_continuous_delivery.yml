@@ -59,6 +59,12 @@ jobs:
             -e MLFLOW_MODEL_NAME \
             -e MLFLOW_EXPERIMENT_NAME \
             -e COMMIT_SHA \
+            -e BASE_URL \
+            -e TRAIN_DATA \
+            -e VALIDATION_DATA \
+            -e SEED \
+            -e TEST_SIZE \
+            -e MODEL_PATH \
             ${{ env.REGISTRY }}/${{ github.repository }}/src/training:${{ github.sha }}
       
       - run: docker pull ${{ env.REGISTRY }}/${{ github.repository }}/src/serving:${{ github.sha }}

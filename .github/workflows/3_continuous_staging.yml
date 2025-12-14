@@ -32,7 +32,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
-        with: { python-version: '3.13' }
+        with: { python-version: "3.13" }
       - run: pip install uv
 
       # Log in to GitHub Container Registry (GHCR)
@@ -55,14 +55,14 @@ jobs:
         run: |
           docker run -d \
             --name serving-app \
-            -p 5000:5000 \
+            -p 9001:9001 \
             -e MLFLOW_TRACKING_URI \
             -e MLFLOW_TRACKING_USERNAME \
             -e MLFLOW_TRACKING_PASSWORD \
             -e MODEL_ALIAS \
             -e MLFLOW_MODEL_NAME \
             ${{ env.REGISTRY }}/${{ github.repository }}/src/serving:staging
-          
+
           # Wait for Flask to be ready
           sleep 10
 
