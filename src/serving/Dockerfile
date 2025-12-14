@@ -11,8 +11,8 @@ COPY src/serving ./src/serving
 RUN pip install uv
 RUN uv sync --frozen
 
-EXPOSE 8080
+EXPOSE 9001
 
 ENV MODEL_PATH=/app/artifacts/model.pkl
 
-CMD ["uv", "run", "uvicorn", "src.api:app", "--host", "0.0.0.0", "--port", "8080"]
+CMD ["uv", "run", "uvicorn", "src.api:app", "--host", "0.0.0.0", "--port", "9001"]

@@ -15,6 +15,7 @@ env:
   MLFLOW_TRACKING_URI: ${{ vars.MLFLOW_TRACKING_URI }}
   MLFLOW_EXPERIMENT_NAME: ${{ vars.MLFLOW_EXPERIMENT_NAME }}
   MLFLOW_MODEL_NAME: ${{ vars.MLFLOW_MODEL_NAME }}
+  MLFLOW_HTTP_REQUEST_TIMEOUT: 500
 
   BASE_URL: https://d37ci6vzurychx.cloudfront.net/trip-data
   TRAIN_DATA: 2011,2012
@@ -61,6 +62,7 @@ jobs:
             -e MLFLOW_MODEL_NAME \
             -e MLFLOW_EXPERIMENT_NAME \
             -e COMMIT_SHA \
+            -e MLFLOW_HTTP_REQUEST_TIMEOUT \
             -e BASE_URL \
             -e TRAIN_DATA \
             -e VALIDATION_DATA \
