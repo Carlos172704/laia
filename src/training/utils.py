@@ -22,7 +22,7 @@ def load_data() -> Tuple[pd.DataFrame, pd.DataFrame]:
 
     # Training data
     for year in configs.TRAIN_DATA:
-        for month in range(1,3):
+        for month in range(1,13):
             url = f"{configs.BASE_URL}/yellow_tripdata_{year}-{month:02d}.parquet"
             print_and_log(f"Loading {url}...", "info")
             try:
@@ -32,7 +32,7 @@ def load_data() -> Tuple[pd.DataFrame, pd.DataFrame]:
                 print_and_log(f"Could not load {url}: {e}", "error")
     
     for year in configs.VALIDATION_DATA:
-        for month in range(1,3):
+        for month in range(1,13):
             url = f"{configs.BASE_URL}/yellow_tripdata_{year}-{month:02d}.parquet"
             print_and_log(f"Loading {url}...", "info")
             try:
